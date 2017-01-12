@@ -1,0 +1,10 @@
+data
+intermediate
+diagrams
+.ipynb_checkpoints
+processed
+textfiles
+keras
+models
+*.pyc
+*.swp

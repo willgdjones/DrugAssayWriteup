@@ -9,14 +9,14 @@ from IPython.display import Image
 import re
 import shutil
 import sys
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 sys.path = ['./keras'] + sys.path
 from keras.optimizers import RMSprop
 from keras.utils import np_utils
-from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Activation, Flatten, Input
+from keras.models import Sequential, Model, load_model
+from keras.layers import Dense, Dropout, Activation, Flatten, Input, Reshape
 from keras.layers import Convolution2D, MaxPooling2D, UpSampling2D, Deconvolution2D
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Nadam
 from IPython.display import SVG
 from keras.utils.visualize_util import model_to_dot
 from keras import backend as K
@@ -24,7 +24,12 @@ import keras
 from keras.applications.vgg19 import VGG19
 import h5py
 import warnings
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+
 warnings.filterwarnings("ignore")
+
+
 
 
 

@@ -87,66 +87,82 @@ def show_mosaic(imgs,figsize):
             a[i][j].axis('off')
 
 
+
 def custom_loss(y_true, y_pred):
     red_error = K.mean(K.square(y_pred[:,:,:,0] - y_true[:,:,:,0]), axis=-1)
     green_error = K.mean(K.square(y_pred[:,:,:,1] - y_true[:,:,:,1]), axis=-1)
-    return red_error + (10 * green_error)
+    return red_error + (50 * green_error)
+
 
 def add_blue(image):
     return np.stack([image[:,:,0], image[:,:,1], np.zeros_like(image[:,:,1])], axis=2)
 
-def generate_autoencoder1():
-    batch_size = 32
-    input_img = Input(batch_shape=(batch_size,200, 200, 2))
+def generate_autoencoder(inner_dim):
 
-    e1 = Convolution2D(16, 10, 10, activation='relu', border_mode='same')
-    e2 = MaxPooling2D((5,5), border_mode='same')
-    e3 = Convolution2D(8, 5, 5, activation='relu', border_mode='same')
-    e4 = MaxPooling2D((2,2), border_mode='same')
-    e5 = Convolution2D(2, 5, 5, activation='relu', border_mode='same')
+    #Define layers
+    e_conv2D1 = Convolution2D(16, 10, 10, activation='relu', border_mode='same', input_shape=(200,200,2))
+    e_maxpool1 = MaxPooling2D((5,5), border_mode='same')
+    e_conv2D2 = Convolution2D(8, 5, 5, activation='relu', border_mode='same')
+    e_maxpool2 = MaxPooling2D((2,2), border_mode='same')
+    e_conv2D3 = Convolution2D(2, 5, 5, activation='relu', border_mode='same')
+    e_flat = Flatten()
+    
+    e_dense = Dense(inner_dim)
+    
+    d_dense = Dense(800)
+    
+    d_reshape = Reshape((20,20,2))
 
-    x = e1(input_img)
-    x = e2(x)
-    x = e3(x)
-    x = e4(x)
-    x = e5(x)
+    d_conv2D1 = Convolution2D(8, 5, 5, activation='relu', border_mode='same')
+    d_upsamp1 = UpSampling2D((2,2))
+    d_conv2D2 = Convolution2D(16, 5, 5, activation='relu', border_mode='same')
+    d_upsamp2 = UpSampling2D((5,5))
+    d_conv2D3 = Convolution2D(2, 10, 10, activation='relu', border_mode='same')
+    
+    
+    autoencoder = Sequential()
+    autoencoder.add(e_conv2D1)
+    autoencoder.add(e_maxpool1)
+    autoencoder.add(e_conv2D2)
+    autoencoder.add(e_maxpool2)
+    autoencoder.add(e_conv2D3)
+    autoencoder.add(e_flat)
+    autoencoder.add(e_dense)
+    autoencoder.add(d_dense)
+    autoencoder.add(d_reshape)
+    autoencoder.add(d_conv2D1)
+    autoencoder.add(d_upsamp1)
+    autoencoder.add(d_conv2D2)
+    autoencoder.add(d_upsamp2)
+    autoencoder.add(d_conv2D3)    
 
-    encoded = x
-
-    d1 = Deconvolution2D(8, 5, 5, output_shape=(batch_size, 20, 20, 8) , activation='relu', border_mode='same', subsample=(1,1))
-    d2 = UpSampling2D((2,2))
-    d3 = Deconvolution2D(16, 5, 5, output_shape=(batch_size,40, 40, 16),activation='relu', border_mode='same', subsample=(1,1))
-    d4 = UpSampling2D((5,5))
-    d5 = Deconvolution2D(2, 10, 10, output_shape=(batch_size, 200, 200, 2), activation='relu', border_mode='same', subsample=(1,1))
-
-    x = d1(x)
-    x = d2(x)
-    x = d3(x)
-    x = d4(x)
-    x = d5(x)
-
-
-    decoder_input = Input(shape=(20,20,2))
-    d = d1(decoder_input)
-    d = d2(d)
-    d = d3(d)
-    d = d4(d)
-    d = d5(d)
+    # decoder
+    decoder_input = Input(shape=(inner_dim,))
+    d = decoder_input
+    d = d_dense(d)
+    d = d_reshape(d)
+    d = d_conv2D1(d)
+    d = d_upsamp1(d)
+    d = d_conv2D2(d)
+    d = d_upsamp2(d)
+    d = d_conv2D3(d)
     decoder = Model(decoder_input, d)
-
+    
     # encoder
-    encoder_input = input_img
-    e = e1(encoder_input)
-    e = e2(e)
-    e = e3(e)
-    e = e4(e)
-    e = e5(e)
-    encoder = Model(input_img, e)
+    encoder_input = Input(shape=(200,200,2))
+    e = e_conv2D1(encoder_input)
+    e = e_maxpool1(e)
+    e = e_conv2D2(e)
+    e = e_maxpool2(e)
+    e = e_conv2D3(e)
+    e = e_flat(e)
+    e = e_dense(e)
+    encoder = Model(encoder_input, e)
 
-    autoencoder = Model(input_img, x)
-    rmsprop = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)
+    rmsprop = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.001)
+    nadam = Nadam(lr=0.0002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
     autoencoder.compile(optimizer=rmsprop, loss=custom_loss)
-    return autoencoder
+    return autoencoder, encoder, decoder
 
 def generate_convolutional_model():
     nb_classes = 2
@@ -220,7 +236,6 @@ def generate_maximal_activations(model,layer_index):
 def load_data(n):
     data = pickle.load(open('intermediate/training_data_{}.py'.format(n),'rb'))
     images, labels = np.array(data[0]), np.array(data[1])
-    images = np.array([image[100:300,100:300,:] for image in images])
     positive_images = np.array(images[labels == True])
     positive_labels = np.array(labels[labels == True])
     negative_images = np.array(images[labels == False])

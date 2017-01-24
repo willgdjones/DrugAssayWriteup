@@ -4,7 +4,8 @@ diagrams
 .ipynb_checkpoints
 processed
 textfiles
-keras
+helpers/keras
 models
 *.pyc
 *.swp
+keras

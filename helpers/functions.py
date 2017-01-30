@@ -45,18 +45,20 @@ def generate_mean_pixel_intensities_for_IXClean():
             pickle.dump(mean_pixel_dict_IXClean, open('intermediate/mean_pixel_dict_IXClean.py','wb'))
         return mean_pixel_dict_IXClean
     
-def display_pixel_cluster(mean_pixel_dict_controls):
-    pixels_intensity_labels = [(mean_pixel_dict_controls[ID][0], mean_pixel_dict_controls[ID][1], ID in total_valid_postiveIDs) for ID in mean_pixel_dict_controls]
 
+def display_pixel_cluster(mean_pixel_dict_controls, alpha):
+    pixels_intensity_labels = [(mean_pixel_dict_controls[ID][0], mean_pixel_dict_controls[ID][1], ID in total_valid_postiveIDs) for ID in mean_pixel_dict_controls]
     pixel_positive_labels = [x[0:2] for x in pixels_intensity_labels if x[-1] == True]
     pixel_negative_labels = [x[0:2] for x in pixels_intensity_labels if x[-1] == False]
 
     plt.title('Mean pixel intensity on red and green channels')
-    plt.scatter([x[0] for x in pixel_negative_labels],[x[1] for x in pixel_negative_labels], color='red', label='Negative Controls',alpha=0.5,s=1)
-    plt.scatter([x[0] for x in pixel_positive_labels],[x[1] for x in pixel_positive_labels], color='blue', label='Positive Controls',alpha=0.5,s=1)
+    plt.scatter([x[0] for x in pixel_negative_labels],[x[1] for x in pixel_negative_labels], color='red', label='Negative Controls',alpha=alpha,s=1)
+    plt.scatter([x[0] for x in pixel_positive_labels],[x[1] for x in pixel_positive_labels], color='blue', label='Positive Controls',alpha=alpha,s=1)
     plt.legend(loc='upper right')
     plt.xlabel('red channel',size=15)
     plt.ylabel('green channel',size=15)
+
+    
 
 def multiply_with_overflow(image, factor):
     m_imageR = cv2.multiply(image[:,:,0], factor[0]) 
@@ -346,3 +348,11 @@ def generate_autoencoder2(inner_dim, batch_size):
     rmsprop = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)
     model.compile(optimizer=rmsprop, loss=custom_loss)
     return model
+
+### Largest Activation
+#base_model = VGG19(include_top=True, weights='imagenet', input_tensor=None, input_shape=None)
+#img_list = generate_maximal_activations(base_model,1)
+#show_mosaic(np.array(img_list), figsize=(10,10))
+
+#img_list = generate_maximal_activations(autoencoder,0)
+#show_mosaic(np.array(img_list), figsize=(10,10))

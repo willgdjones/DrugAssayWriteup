@@ -1,3 +1,6 @@
+import sys
+sys.path = ['./keras'] + sys.path
+sys.path = ['/nfs/gns/homes/willj/anaconda3/envs/GTEx/lib/python3.5/site-packages'] + sys.path
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -10,7 +13,6 @@ import re
 import shutil
 import sys
 from sklearn.model_selection import train_test_split
-sys.path = ['./keras'] + sys.path
 from keras.optimizers import RMSprop
 from keras.utils import np_utils
 from keras.models import Sequential, Model, load_model
